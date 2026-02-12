@@ -1,9 +1,12 @@
 from kv_stores.KeyValueStore import KeyValueStore
+from kv_stores.DictKeyValueStore import DictKeyValueStore
 from kv_stores.PostgresKeyValueStore import PostgresKeyValueStore, KeyValueSchemaSpec
 
 
 def of(store_type: str, **kwargs) -> KeyValueStore:
     store_type = store_type.lower()
+    if store_type in {"dict", "memory", "in_memory"}:
+        return DictKeyValueStore()
     if store_type in {"postgres", "postgresql"}:
         return PostgresKeyValueStore(**kwargs)
 
