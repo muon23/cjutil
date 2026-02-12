@@ -32,6 +32,15 @@ class KeyValueSchemaSpec:
             raise ValueError(f"Invalid SQL identifier for {name}: {identifier}")
 
     def validate(self, key_columns: list[str]) -> None:
+        """
+        Validate schema integrity before table creation/use.
+
+        Args:
+            key_columns: Key column names that must exist in `columns`.
+
+        Raises:
+            ValueError: If identifiers are invalid or required columns are missing.
+        """
         if _EXTRA_DATA_COLUMN in self.columns:
             raise ValueError(f"'{_EXTRA_DATA_COLUMN}' is reserved and cannot appear in schema columns")
 
@@ -74,6 +83,21 @@ class PostgresKeyValueStore(KeyValueStore):
             create_if_not_exist: bool = False,
             schema_name: str | None = None,
     ):
+        """
+        Initialize a PostgreSQL-backed key-value store.
+
+        Args:
+            dsn: PostgreSQL DSN string.
+            table_name: Target table name.
+            key_columns: Single key column or composite key columns.
+            schema_spec: Schema definition used for table creation/validation.
+            create_if_not_exist: Whether to create table/indexes if absent.
+            schema_name: Optional schema name.
+
+        Raises:
+            ValueError: If identifiers/key columns are invalid or schema_spec is missing for creation.
+            RuntimeError: If table does not exist or key uniqueness constraints are invalid.
+        """
         self._dsn = dsn
         self._table_name = table_name
         self._schema_name = schema_name
@@ -109,6 +133,19 @@ class PostgresKeyValueStore(KeyValueStore):
             schema_spec: KeyValueSchemaSpec,
             schema_name: str | None = None,
     ) -> "PostgresKeyValueStore":
+        """
+        Construct a store and create schema objects when missing.
+
+        Args:
+            dsn: PostgreSQL DSN string.
+            table_name: Target table name.
+            key_columns: Single key column or composite key columns.
+            schema_spec: Required schema definition for creation.
+            schema_name: Optional schema name.
+
+        Returns:
+            Initialized PostgresKeyValueStore instance.
+        """
         return cls(
             dsn=dsn,
             table_name=table_name,
@@ -119,9 +156,11 @@ class PostgresKeyValueStore(KeyValueStore):
         )
 
     def _qualified_table(self) -> str:
+        """Return optionally schema-qualified table name."""
         return f"{self._schema_name}.{self._table_name}" if self._schema_name else self._table_name
 
     def _create_table_if_not_exists(self) -> None:
+        """Create table + secondary indexes when bootstrapping a new store."""
         assert self._schema_spec is not None
         self._schema_spec.validate(self._key_columns)
 
@@ -149,6 +188,7 @@ class PostgresKeyValueStore(KeyValueStore):
         self._load_schema_from_existing_table()
 
     def _load_schema_from_existing_table(self) -> None:
+        """Introspect runtime schema from information_schema for typed conversions."""
         if self._schema_spec is not None and _EXTRA_DATA_COLUMN in self._schema_spec.columns:
             raise ValueError(f"'{_EXTRA_DATA_COLUMN}' is reserved and cannot appear in schema columns")
 
@@ -178,6 +218,7 @@ class PostgresKeyValueStore(KeyValueStore):
             self._nullable[name] = str(is_nullable).upper() == "YES"
 
     def _assert_key_is_unique_indexed(self) -> None:
+        """Require a unique/primary index on key columns for deterministic UPSERT semantics."""
         schema_sql = "AND n.nspname = %s " if self._schema_name else ""
         sql = (
             "SELECT i.indisunique, array_agg(a.attname ORDER BY ord.n) AS cols "
@@ -234,6 +275,7 @@ class PostgresKeyValueStore(KeyValueStore):
         raise ValueError(f"{label} must be a dict or JSON object string")
 
     def _split_value_payload(self, value: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+        # Unknown fields are preserved in kv_store_extra_data so callers can evolve payload shape.
         payload = self._parse_mapping_input(value, "value")
         schema_cols = set(self._columns.keys()) - set(self._key_columns) - {_EXTRA_DATA_COLUMN}
         known = {k: payload[k] for k in payload if k in schema_cols}
@@ -241,6 +283,7 @@ class PostgresKeyValueStore(KeyValueStore):
         return known, extra
 
     def _typed_value(self, column: str, value: Any) -> Any:
+        """Best-effort conversion from user payload into SQL column-compatible value."""
         if value is None:
             return None
         type_name = self._columns[column].lower()
@@ -284,6 +327,18 @@ class PostgresKeyValueStore(KeyValueStore):
         return required
 
     def set(self, key: Any, value: Any, ttl_seconds: int | None = None) -> None:
+        """
+        Full UPSERT with replace semantics.
+
+        Args:
+            key: Key value or key mapping for composite keys.
+            value: Dict payload or JSON object string.
+            ttl_seconds: Optional TTL in seconds. Requires `expires_at` column.
+
+        Raises:
+            ValueError: If key/value payload is invalid, unknown fields cannot be stored,
+                required columns are missing, or TTL column is unavailable.
+        """
         key_map = self._parse_key(key)
         known, extra = self._split_value_payload(value)
 
@@ -325,6 +380,19 @@ class PostgresKeyValueStore(KeyValueStore):
             conn.commit()
 
     def patch(self, key: Any, value: Any, ttl_seconds: int | None = None) -> None:
+        """
+        Partial update with merge semantics.
+
+        Args:
+            key: Key value or key mapping for composite keys.
+            value: Dict payload or JSON object string with changed fields only.
+            ttl_seconds: Optional TTL in seconds. Requires `expires_at` column.
+
+        Raises:
+            ValueError: If key/value payload is invalid, unknown fields cannot be stored,
+                or TTL column is unavailable.
+            KeyNotFoundError: If the target key does not exist.
+        """
         key_map = self._parse_key(key)
         known, extra = self._split_value_payload(value)
 
@@ -366,6 +434,20 @@ class PostgresKeyValueStore(KeyValueStore):
             raise KeyNotFoundError(f"Key not found: {key}")
 
     def get(self, key: Any, default: Any = MISSING) -> dict:
+        """
+        Fetch and flatten one row payload.
+
+        Args:
+            key: Key value or key mapping for composite keys.
+            default: Fallback value returned when key is missing.
+
+        Returns:
+            Flattened row dict, including merged `kv_store_extra_data` keys.
+
+        Raises:
+            KeyNotFoundError: If key is missing and default is not provided.
+            ValueError: If key payload is invalid.
+        """
         key_map = self._parse_key(key)
         where = " AND ".join([f"{c} = %s" for c in self._key_columns])
         sql = f"SELECT * FROM {self._qualified_table()} WHERE {where}"
@@ -380,7 +462,7 @@ class PostgresKeyValueStore(KeyValueStore):
                     return default
                 col_names = [d[0] for d in cur.description]
 
-        data = dict(zip(col_names, row))
+        data: dict[str, Any] = dict(zip(col_names, row))
         extra = data.pop(_EXTRA_DATA_COLUMN, None)
         if isinstance(extra, str):
             try:
@@ -394,6 +476,18 @@ class PostgresKeyValueStore(KeyValueStore):
         return data
 
     def exists(self, key: Any) -> bool:
+        """
+        Check whether a key exists.
+
+        Args:
+            key: Key value or key mapping for composite keys.
+
+        Returns:
+            True if a row exists for the key.
+
+        Raises:
+            ValueError: If key payload is invalid.
+        """
         key_map = self._parse_key(key)
         where = " AND ".join([f"{c} = %s" for c in self._key_columns])
         sql = f"SELECT 1 FROM {self._qualified_table()} WHERE {where}"
@@ -405,6 +499,18 @@ class PostgresKeyValueStore(KeyValueStore):
                 return cur.fetchone() is not None
 
     def delete(self, key: Any) -> bool:
+        """
+        Delete one key.
+
+        Args:
+            key: Key value or key mapping for composite keys.
+
+        Returns:
+            True if a row was deleted, otherwise False.
+
+        Raises:
+            ValueError: If key payload is invalid.
+        """
         key_map = self._parse_key(key)
         where = " AND ".join([f"{c} = %s" for c in self._key_columns])
         sql = f"DELETE FROM {self._qualified_table()} WHERE {where}"

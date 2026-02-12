@@ -1,0 +1,14 @@
+langchain>=1.0.0
+langchain-core>=1.2.11
+langchain-openai>=1.1.9
+langchain-google-genai
+langchain-classic
+sentence-transformers
+transformers
+psycopg
+huggingface_hub
+pydantic
+httpx
+trafilatura
+pypdf
+ddgs

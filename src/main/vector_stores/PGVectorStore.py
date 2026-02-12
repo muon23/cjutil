@@ -40,6 +40,24 @@ class PGVectorStore(VectorStore):
             metadata_column: str = "metadata",
             document_column: str = "document",
     ):
+        """
+        Initialize pgvector store metadata and optionally bootstrap schema.
+
+        Args:
+            dsn: PostgreSQL DSN string.
+            table_name: Target table name.
+            dimension: Required vector dimension.
+            create_if_not_exist: Whether to create extension/table if missing.
+            schema_name: Optional schema name.
+            distance: Distance metric (cosine, l2, inner_product).
+            id_column: Record ID column name.
+            vector_column: Vector column name.
+            metadata_column: Metadata JSONB column name.
+            document_column: Optional document text column name.
+
+        Raises:
+            ValueError: If identifiers, dimension, or distance metric are invalid.
+        """
         self._dsn = dsn
         self._table_name = table_name
         self._dimension = dimension
@@ -75,6 +93,19 @@ class PGVectorStore(VectorStore):
             schema_name: str | None = None,
             distance: Literal["cosine", "l2", "inner_product"] = "cosine",
     ) -> "PGVectorStore":
+        """
+        Construct a store and create pgvector objects when missing.
+
+        Args:
+            dsn: PostgreSQL DSN string.
+            table_name: Target table name.
+            dimension: Required vector dimension.
+            schema_name: Optional schema name.
+            distance: Distance metric (cosine, l2, inner_product).
+
+        Returns:
+            Initialized PGVectorStore instance.
+        """
         return cls(
             dsn=dsn,
             table_name=table_name,
@@ -97,6 +128,7 @@ class PGVectorStore(VectorStore):
         return "[" + ",".join(str(float(x)) for x in vector) + "]"
 
     def _create_if_not_exists(self) -> None:
+        """Create pgvector extension/table if not already present."""
         table = self._qualified_table()
         ddl = (
             f"CREATE TABLE IF NOT EXISTS {table} ("
@@ -120,6 +152,18 @@ class PGVectorStore(VectorStore):
             metadata: dict[str, Any] | None = None,
             document: str | None = None,
     ) -> None:
+        """
+        Insert or replace one vector record by record_id.
+
+        Args:
+            record_id: Unique record identifier.
+            vector: Embedding vector with configured dimension.
+            metadata: Optional metadata dict stored as JSONB.
+            document: Optional document text.
+
+        Raises:
+            ValueError: If vector dimension does not match store dimension.
+        """
         if len(vector) != self._dimension:
             raise ValueError(
                 f"Vector dimension mismatch: expected {self._dimension}, got {len(vector)}"
@@ -149,6 +193,20 @@ class PGVectorStore(VectorStore):
             top_k: int = 10,
             metadata_filter: dict[str, Any] | None = None,
     ) -> list[Match]:
+        """
+        Run nearest-neighbor lookup with optional metadata filter.
+
+        Args:
+            vector: Query vector with configured dimension.
+            top_k: Maximum number of matches to return.
+            metadata_filter: Optional JSONB containment filter.
+
+        Returns:
+            Ranked Match list (higher score is better).
+
+        Raises:
+            ValueError: If vector dimension is invalid.
+        """
         if len(vector) != self._dimension:
             raise ValueError(
                 f"Vector dimension mismatch: expected {self._dimension}, got {len(vector)}"
@@ -192,6 +250,7 @@ class PGVectorStore(VectorStore):
                     metadata = {}
             metadata = metadata if isinstance(metadata, dict) else {}
 
+            # Normalize all distance modes to a higher-is-better score for callers.
             if self._distance == "cosine":
                 score = 1.0 - float(distance)
             else:
@@ -206,6 +265,15 @@ class PGVectorStore(VectorStore):
         return matches
 
     def delete(self, record_id: str) -> bool:
+        """
+        Delete one vector record by ID.
+
+        Args:
+            record_id: Record identifier.
+
+        Returns:
+            True if a row was deleted, otherwise False.
+        """
         table = self._qualified_table()
         sql = f"DELETE FROM {table} WHERE {self._id_column} = %s"
         with psycopg.connect(self._dsn) as conn:

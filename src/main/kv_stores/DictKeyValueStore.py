@@ -17,11 +17,18 @@ class DictKeyValueStore(KeyValueStore):
     """
 
     def __init__(self):
+        """
+        Create an empty in-memory store.
+
+        Returns:
+            None.
+        """
         self._values: dict[Any, dict[str, Any]] = {}
         self._expires_at: dict[Any, datetime | None] = {}
 
     @staticmethod
     def _parse_value(value: Any) -> dict[str, Any]:
+        """Accept dict or JSON object string payloads and normalize to dict."""
         if isinstance(value, dict):
             return dict(value)
         if isinstance(value, str):
@@ -39,11 +46,23 @@ class DictKeyValueStore(KeyValueStore):
         return exp is not None and exp <= datetime.now(timezone.utc)
 
     def _purge_if_expired(self, key: Any) -> None:
+        # TTL is enforced lazily so this store remains lightweight.
         if self._is_expired(key):
             self._values.pop(key, None)
             self._expires_at.pop(key, None)
 
     def set(self, key: Any, value: Any, ttl_seconds: int | None = None) -> None:
+        """
+        Full UPSERT (replace) for one key.
+
+        Args:
+            key: Store key.
+            value: Dict payload or JSON object string.
+            ttl_seconds: Optional time-to-live in seconds.
+
+        Raises:
+            ValueError: If value is neither dict nor JSON object string.
+        """
         parsed = self._parse_value(value)
         self._values[key] = parsed
         self._expires_at[key] = (
@@ -52,6 +71,18 @@ class DictKeyValueStore(KeyValueStore):
         )
 
     def patch(self, key: Any, value: Any, ttl_seconds: int | None = None) -> None:
+        """
+        Partial update for one key.
+
+        Args:
+            key: Store key.
+            value: Dict payload or JSON object string to merge.
+            ttl_seconds: Optional TTL override in seconds.
+
+        Raises:
+            KeyNotFoundError: If key does not exist.
+            ValueError: If value is neither dict nor JSON object string.
+        """
         self._purge_if_expired(key)
         if key not in self._values:
             raise KeyNotFoundError(f"Key not found: {key}")
@@ -63,6 +94,19 @@ class DictKeyValueStore(KeyValueStore):
             self._expires_at[key] = datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)
 
     def get(self, key: Any, default: Any = MISSING) -> dict:
+        """
+        Fetch one key from memory.
+
+        Args:
+            key: Store key.
+            default: Fallback value returned when key is missing.
+
+        Returns:
+            A shallow copy of stored dict payload.
+
+        Raises:
+            KeyNotFoundError: If key is missing and default is not provided.
+        """
         self._purge_if_expired(key)
         if key not in self._values:
             if default is MISSING:
@@ -71,10 +115,28 @@ class DictKeyValueStore(KeyValueStore):
         return dict(self._values[key])
 
     def exists(self, key: Any) -> bool:
+        """
+        Check key existence.
+
+        Args:
+            key: Store key.
+
+        Returns:
+            True if key exists and has not expired.
+        """
         self._purge_if_expired(key)
         return key in self._values
 
     def delete(self, key: Any) -> bool:
+        """
+        Delete one key from memory.
+
+        Args:
+            key: Store key.
+
+        Returns:
+            True if key existed and was deleted.
+        """
         self._purge_if_expired(key)
         existed = key in self._values
         self._values.pop(key, None)
