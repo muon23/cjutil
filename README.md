@@ -24,10 +24,7 @@ pip install -r requirements.txt
 ```bash
 export OPENAI_API_KEY="your-openai-key"
 # Optional examples:
-# export GOOGLE_API_KEY="..."
-# export REPLICATE_API_TOKEN="..."
-# export HUGGINGFACEHUB_API_TOKEN="..."
-# export DEEPINFRA_API_KEY="..."
+# export GOOGLE_API_KEY="your-gemini-key"
 ```
 
 ### 4) Configure import path
@@ -60,6 +57,7 @@ PY
 - `src/main/llms`: LLM abstraction and provider implementations.
 - `src/main/embeddings`: Text embedding abstraction and provider implementations.
 - `src/main/kv_stores`: Key-value store abstraction with in-memory and PostgreSQL backends.
+- `src/main/sql_stores`: SQL execution abstraction with PostgreSQL backend.
 - `src/main/vector_stores`: Vector store abstraction with PostgreSQL/pgvector backend.
 - `src/test`: Integration-oriented tests for the modules above.
 
@@ -219,6 +217,39 @@ store.upsert("doc-2", [0.9, 0.1, 0.0], metadata={"lang": "fr"}, document="Bonjou
 matches = store.query([0.1, 0.2, 0.25], top_k=5, metadata_filter={"lang": "en"})
 for m in matches:
     print(m.record_id, m.score, m.metadata)
+```
+
+## sql_stores Module
+
+### Overview
+
+`sql_stores` provides a backend-agnostic SQL execution interface for read/write statements, including explicit transaction scope and context-manager support.
+
+### High-Level Objects
+
+- `SqlStore` (base class):
+  - `execute`, `execute_many`, `query`
+  - `transaction`, `close`
+  - supports `with` statement via `__enter__` / `__exit__`
+- `PostgresSqlStore`: `psycopg`-based implementation for PostgreSQL.
+- `sql_stores.of(store_type, **kwargs)`: backend factory.
+
+### Usage Example
+
+```python
+from sql_stores import of
+
+with of("postgres", dsn="postgresql://localhost:5432/postgres") as db:
+    db.execute("CREATE TABLE IF NOT EXISTS account (id TEXT PRIMARY KEY, balance INT NOT NULL)")
+
+    with db.transaction():
+        db.execute("INSERT INTO account (id, balance) VALUES (%s, %s)", ("A", 100))
+        db.execute("INSERT INTO account (id, balance) VALUES (%s, %s)", ("B", 50))
+        db.execute("UPDATE account SET balance = balance - %s WHERE id = %s", (20, "A"))
+        db.execute("UPDATE account SET balance = balance + %s WHERE id = %s", (20, "B"))
+
+    rows = db.query("SELECT id, balance FROM account ORDER BY id")
+    print(rows)
 ```
 
 ## Notes
