@@ -65,6 +65,7 @@ class SentenceTransformerEmbedding(TextEmbedding):
         self.model_name = model_name
         self.normalize_embeddings = normalize_embeddings
         self.model = SentenceTransformer(model_name, **kwargs)
+        self._dimension_cache: int | None = None
         logging.info(f"Using sentence-transformers embedding model {self.model_name}")
 
     def embed_documents(self, texts: list[str]) -> EmbeddingBatch:
@@ -103,6 +104,34 @@ class SentenceTransformerEmbedding(TextEmbedding):
             normalize_embeddings=self.normalize_embeddings,
         )
         return vectors.tolist()
+
+    def get_dimension(self) -> int:
+        """
+        Return output vector dimension for the active sentence-transformers model.
+
+        Returns:
+            Number of dimensions in one embedding vector.
+
+        Raises:
+            RuntimeError: If dimension cannot be resolved.
+        """
+        if self._dimension_cache is not None:
+            return self._dimension_cache
+
+        dim = None
+        # sentence-transformers exposes this for most models.
+        if hasattr(self.model, "get_sentence_embedding_dimension"):
+            dim = self.model.get_sentence_embedding_dimension()
+
+        if not dim or int(dim) <= 0:
+            # Fallback: probe one embedding at runtime.
+            dim = len(self.embed_query("dimension probe"))
+
+        if not dim or int(dim) <= 0:
+            raise RuntimeError(f"Cannot resolve embedding dimension for model {self.model_name}")
+
+        self._dimension_cache = int(dim)
+        return self._dimension_cache
 
     def get_model_name(self) -> str:
         """

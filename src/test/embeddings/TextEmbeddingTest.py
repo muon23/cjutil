@@ -78,9 +78,11 @@ class TextEmbeddingTest(unittest.TestCase):
                     provider="sentence-transformers",
                     model_name=model_name
                 )
+                dim = embedder.get_dimension()
                 self.assertEqual(model_name, embedder.get_model_name())
                 self.assertEqual(len(self.SENTENCE_TEXTS), len(vectors))
                 self.assertGreater(len(vectors[0]), 0)
+                self.assertEqual(dim, len(vectors[0]))
                 self.assertIsInstance(vectors[0][0], float)
 
     def test_langchain_supported_models(self):
@@ -104,9 +106,11 @@ class TextEmbeddingTest(unittest.TestCase):
                     provider="openai",
                     model_name=model_name
                 )
+                dim = embedder.get_dimension()
                 self.assertEqual(model_name, embedder.get_model_name())
                 self.assertEqual(2, len(vectors))
                 self.assertGreater(len(vectors[0]), 0)
+                self.assertEqual(dim, len(vectors[0]))
                 self.assertIsInstance(vectors[0][0], float)
 
     def test_factory_of_supported_models(self):

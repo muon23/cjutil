@@ -10,9 +10,9 @@ class LangChainEmbedding(TextEmbedding):
 
     # Currently wired to OpenAI embeddings through langchain_openai.
     __OPENAI_MODELS = {
-        "text-embedding-3-large": {"aliases": ["openai-embed-large", "embed-3-large"]},
-        "text-embedding-3-small": {"aliases": ["openai-embed-small", "embed-3-small"]},
-        "text-embedding-ada-002": {"aliases": ["ada-002"]},
+        "text-embedding-3-large": {"aliases": ["openai-embed-large", "embed-3-large"], "dimension": 3072},
+        "text-embedding-3-small": {"aliases": ["openai-embed-small", "embed-3-small"], "dimension": 1536},
+        "text-embedding-ada-002": {"aliases": ["ada-002"], "dimension": 1536},
     }
 
     SUPPORTED_MODELS = list(__OPENAI_MODELS.keys())
@@ -56,6 +56,8 @@ class LangChainEmbedding(TextEmbedding):
 
         self.model_name = model_name
         self.embedding = OpenAIEmbeddings(model=self.model_name, api_key=api_key, **kwargs)
+        self._configured_dimension = kwargs.get("dimensions", None)
+        self._dimension_cache: int | None = None
         logging.info(f"Using LangChain embedding model {self.model_name}")
 
     def embed_documents(self, texts: list[str]) -> EmbeddingBatch:
@@ -83,6 +85,48 @@ class LangChainEmbedding(TextEmbedding):
             Query embedding vector.
         """
         return self.embedding.embed_query(text)
+
+    def get_dimension(self) -> int:
+        """
+        Return output vector dimension for the active LangChain/OpenAI model.
+
+        Returns:
+            Number of dimensions in one embedding vector.
+
+        Raises:
+            RuntimeError: If dimension cannot be resolved.
+        """
+        if self._dimension_cache is not None:
+            return self._dimension_cache
+
+        # Highest-priority: explicit dimensions requested by caller.
+        if self._configured_dimension is not None:
+            dim = int(self._configured_dimension)
+            if dim <= 0:
+                raise RuntimeError(f"Invalid configured embedding dimension: {self._configured_dimension}")
+            self._dimension_cache = dim
+            return dim
+
+        # If provider object exposes dimensions, use it.
+        runtime_dim = getattr(self.embedding, "dimensions", None)
+        if runtime_dim is not None:
+            dim = int(runtime_dim)
+            if dim > 0:
+                self._dimension_cache = dim
+                return dim
+
+        # Catalog fallback for known defaults.
+        advertised = self.__OPENAI_MODELS.get(self.model_name, {}).get("dimension", None)
+        if advertised is not None and int(advertised) > 0:
+            self._dimension_cache = int(advertised)
+            return self._dimension_cache
+
+        # Last-resort runtime probe.
+        dim = len(self.embed_query("dimension probe"))
+        if dim <= 0:
+            raise RuntimeError(f"Cannot resolve embedding dimension for model {self.model_name}")
+        self._dimension_cache = dim
+        return dim
 
     def get_model_name(self) -> str:
         """

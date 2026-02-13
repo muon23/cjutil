@@ -36,6 +36,19 @@ class TextEmbedding(ABC):
         ...
 
     @abstractmethod
+    def get_dimension(self) -> int:
+        """
+        Return the output embedding vector dimension for the active model.
+
+        Returns:
+            Number of dimensions in one embedding vector.
+
+        Raises:
+            RuntimeError: If the provider cannot resolve vector dimension.
+        """
+        ...
+
+    @abstractmethod
     def get_model_name(self) -> str:
         """
         Return the active concrete model identifier.

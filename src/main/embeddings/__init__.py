@@ -78,3 +78,23 @@ def embed_query(model_name: str, text: str, **kwargs) -> list[float]:
         active_embeddings[model_name] = of(model_name, **kwargs)
 
     return active_embeddings[model_name].embed_query(text)
+
+
+def get_dimension(model_name: str, **kwargs) -> int:
+    """
+    Resolve/cache provider and return embedding vector dimension.
+
+    Args:
+        model_name: Embedding model name or alias.
+        **kwargs: Provider-specific constructor arguments for first-time initialization.
+
+    Returns:
+        Number of dimensions in one embedding vector.
+
+    Raises:
+        RuntimeError: If model_name is unsupported or dimension cannot be resolved.
+    """
+    if model_name not in active_embeddings:
+        active_embeddings[model_name] = of(model_name, **kwargs)
+
+    return active_embeddings[model_name].get_dimension()
