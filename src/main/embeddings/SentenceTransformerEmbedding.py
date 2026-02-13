@@ -12,11 +12,13 @@ class SentenceTransformerEmbedding(TextEmbedding):
     __MODELS = {
         "BAAI/bge-m3": {"aliases": ["bge-m3"]},
         "intfloat/multilingual-e5-large-instruct": {
-            "aliases": ["multilingual-e5-large"],
+            "aliases": ["multilingual-e5-large", "e5"],
             "instruct": "Instruct: Given a user search query, retrieve relevant passages that answer the query.\n"
                         "Query: {text}"
         },
-        "sentence-transformers/paraphrase-multilingual-mpnet-base-v2": {"aliases": ["multilingual-mpnet"]},
+        "sentence-transformers/paraphrase-multilingual-mpnet-base-v2": {
+            "aliases": ["multilingual-mpnet", "mpnet"],
+        },
         "sentence-transformers/LaBSE": {"aliases": ["labse"]},
     }
 
