@@ -9,6 +9,7 @@ from ml.data_prep import (
     FeatureScaler,
     Imputer,
     CategoricalEncoder,
+    PCATransformer,
 )
 from ml.regression import RegressionModel, LinearRegressionModel, RidgeRegressionModel, RandomForestRegressionModel
 
@@ -114,6 +115,7 @@ __all__ = [
     "FeatureScaler",
     "Imputer",
     "CategoricalEncoder",
+    "PCATransformer",
     "classifier_of",
     "regressor_of",
     "cluster_of",

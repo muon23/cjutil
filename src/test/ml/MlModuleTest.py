@@ -8,7 +8,7 @@ import ml
 from ml.MLModel import MlModel
 from ml.classification import LogisticRegressionClassifier, RandomForestClassifierModel
 from ml.clustering import DBSCANClusterModel, KMeansClusterModel
-from ml.data_prep import CategoricalEncoder, DatasetSplitter, FeatureScaler, Imputer
+from ml.data_prep import CategoricalEncoder, DatasetSplitter, FeatureScaler, Imputer, PCATransformer
 from ml.regression import LinearRegressionModel, RandomForestRegressionModel, RidgeRegressionModel
 
 
@@ -127,6 +127,19 @@ class MlModuleTest(unittest.TestCase):
         encoded = CategoricalEncoder(sparse_output=False).fit_transform(categories)
         self.assertEqual(categories.shape[0], encoded.shape[0])
         self.assertGreater(encoded.shape[1], 0)
+
+        pca = PCATransformer(n_components=1, random_state=42).fit(self.X)
+        projected = pca.transform(self.X)
+        self.assertEqual((self.X.shape[0], 1), projected.shape)
+        reconstructed = pca.inverse_transform(projected)
+        self.assertEqual(self.X.shape, reconstructed.shape)
+        variance_ratio = pca.explained_variance_ratio()
+        self.assertEqual(1, variance_ratio.shape[0])
+
+        with self.assertRaises(ValueError):
+            PCATransformer(n_components=0)
+        with self.assertRaises(ValueError):
+            PCATransformer(n_components=1.2)
 
     def test_model_save_and_load(self):
         model = LogisticRegressionClassifier(max_iter=200).fit(self.X, self.y_cls)
