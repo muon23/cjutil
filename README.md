@@ -1,6 +1,6 @@
 # CJ's Utilities (`cjutil`)
 
-Reusable modules for LLM access, text embeddings, key-value stores, and vector stores.
+Reusable modules for LLM access, text embeddings, key-value stores, vector stores, recommenders, and traditional ML.
 
 ## Getting Started
 
@@ -59,6 +59,7 @@ PY
 - `src/main/kv_stores`: Key-value store abstraction with in-memory and PostgreSQL backends.
 - `src/main/sql_stores`: SQL execution abstraction with PostgreSQL backend.
 - `src/main/vector_stores`: Vector store abstraction with PostgreSQL/pgvector backend.
+- `src/main/recommenders`: Recommender abstraction and ALS implementation.
 - `src/main/ml`: Traditional ML wrappers (classification, regression, clustering, and data prep).
 - `src/test`: Integration-oriented tests for the modules above.
 
@@ -305,6 +306,43 @@ print("pred:", pred)
 cluster_model = cluster_of("kmeans", k=2, random_state=42)
 labels = cluster_model.fit_predict(X)
 print("cluster labels:", labels)
+```
+
+## recommenders Module
+
+### Overview
+
+`recommenders` provides a base recommender contract and a concrete `ALSRecommender` implementation for implicit-feedback collaborative filtering.
+
+### High-Level Objects
+
+- `Recommender` (base class):
+  - `fit`
+  - `recommend`
+  - `recommend_many`
+- `Recommendation`: ranked output item payload (`item_id`, `score`)
+- `ALSRecommender`: concrete ALS-based recommender for implicit feedback.
+- `recommenders.of(model_name, **kwargs)`: recommender factory (`als`, `implicit_als`).
+
+### Usage Example
+
+```python
+import numpy as np
+from scipy.sparse import csr_matrix
+from recommenders import of
+
+interactions = csr_matrix(np.array([
+    [1, 0, 0, 1, 0],
+    [0, 1, 0, 0, 1],
+    [1, 0, 1, 0, 0],
+], dtype=np.float32))
+
+model = of("als", factors=32, iterations=15, random_state=42)
+model.fit(interactions)
+
+recs = model.recommend(user_id=0, interactions=interactions, top_k=3)
+for rec in recs:
+    print(rec.item_id, rec.score)
 ```
 
 ## Notes
