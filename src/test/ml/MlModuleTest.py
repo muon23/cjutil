@@ -8,7 +8,7 @@ import ml
 from ml.MLModel import MlModel
 from ml.classification import LogisticRegressionClassifier, RandomForestClassifierModel
 from ml.clustering import DBSCANClusterModel, KMeansClusterModel
-from ml.data_prep import CategoricalEncoder, DatasetSplitter, FeatureScaler, Imputer, PCATransformer
+from ml.preparation import CategoricalEncoder, DatasetSplitter, FeatureScaler, Imputer, PCATransformer
 from ml.regression import LinearRegressionModel, RandomForestRegressionModel, RidgeRegressionModel
 
 

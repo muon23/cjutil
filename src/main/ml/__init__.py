@@ -10,7 +10,7 @@ from ml.clustering import (
     DBSCANClusterModel,
     of as _clustering_of,
 )
-from ml.data_prep import (
+from ml.preparation import (
     SplitResult,
     Split3Result,
     DatasetSplitter,
@@ -18,6 +18,8 @@ from ml.data_prep import (
     Imputer,
     CategoricalEncoder,
     PCATransformer,
+    train_test,
+    train_val_test,
 )
 from ml.regression import (
     RegressionModel,
@@ -51,6 +53,8 @@ __all__ = [
     "Imputer",
     "CategoricalEncoder",
     "PCATransformer",
+    "train_test",
+    "train_val_test",
     "classifier_of",
     "regressor_of",
     "cluster_of",
