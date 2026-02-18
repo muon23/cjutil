@@ -5,6 +5,8 @@ langchain-google-genai
 langchain-classic
 sentence-transformers
 transformers
+numpy
+scikit-learn
 psycopg
 huggingface_hub
 pydantic

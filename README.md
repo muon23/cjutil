@@ -59,6 +59,7 @@ PY
 - `src/main/kv_stores`: Key-value store abstraction with in-memory and PostgreSQL backends.
 - `src/main/sql_stores`: SQL execution abstraction with PostgreSQL backend.
 - `src/main/vector_stores`: Vector store abstraction with PostgreSQL/pgvector backend.
+- `src/main/ml`: Traditional ML wrappers (classification, regression, clustering, and data prep).
 - `src/test`: Integration-oriented tests for the modules above.
 
 ## llms Module
@@ -250,6 +251,60 @@ with of("postgres", dsn="postgresql://localhost:5432/postgres") as db:
 
     rows = db.query("SELECT id, balance FROM account ORDER BY id")
     print(rows)
+```
+
+## ml Module
+
+### Overview
+
+`ml` provides thin, reusable wrappers around common `scikit-learn` algorithms plus practical data-prep utilities. The API is task-oriented and exposed through task-specific factories:
+- `ml.classifier_of(model_name, **kwargs)`
+- `ml.regressor_of(model_name, **kwargs)`
+- `ml.cluster_of(model_name, **kwargs)`
+
+### High-Level Objects
+
+- Core:
+  - `MlModel`: common interface for `fit`, `predict`, params, and save/load.
+- Submodules:
+  - `classification.ClassifierModel` with concrete models:
+    - `LogisticRegressionClassifier`
+    - `RandomForestClassifierModel`
+  - `regression.RegressionModel` with concrete models:
+    - `LinearRegressionModel`
+    - `RidgeRegressionModel`
+    - `RandomForestRegressionModel`
+  - `clustering.ClusterModel` with concrete models:
+    - `KMeansClusterModel`
+    - `DBSCANClusterModel`
+- Data prep utilities:
+  - `DatasetSplitter`
+  - `FeatureScaler`
+  - `Imputer`
+  - `CategoricalEncoder`
+
+### Usage Example
+
+```python
+import numpy as np
+from ml import classifier_of, cluster_of, DatasetSplitter, FeatureScaler
+
+# Classification example
+X = np.array([[0.1, 1.2], [0.2, 1.0], [1.1, 0.2], [1.2, 0.1]])
+y = np.array([0, 0, 1, 1])
+
+split = DatasetSplitter.train_test(X, y, test_size=0.25, random_state=42, stratify=True)
+scaler = FeatureScaler("standard").fit(split.X_train)
+
+clf = classifier_of("logreg", max_iter=200)
+clf.fit(scaler.transform(split.X_train), split.y_train)
+pred = clf.predict(scaler.transform(split.X_test))
+print("pred:", pred)
+
+# Clustering example
+cluster_model = cluster_of("kmeans", k=2, random_state=42)
+labels = cluster_model.fit_predict(X)
+print("cluster labels:", labels)
 ```
 
 ## Notes
