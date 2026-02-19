@@ -6,10 +6,19 @@ import numpy as np
 
 import ml
 from ml.MLModel import MlModel
-from ml.classification import LogisticRegressionClassifier, RandomForestClassifierModel
+from ml.classification import (
+    GradientBoostingClassifierModel,
+    LogisticRegressionClassifier,
+    RandomForestClassifierModel,
+)
 from ml.clustering import DBSCANClusterModel, KMeansClusterModel
 from ml.preparation import CategoricalEncoder, DatasetSplitter, FeatureScaler, Imputer, PCATransformer
-from ml.regression import LinearRegressionModel, RandomForestRegressionModel, RidgeRegressionModel
+from ml.regression import (
+    GradientBoostingRegressionModel,
+    LinearRegressionModel,
+    RandomForestRegressionModel,
+    RidgeRegressionModel,
+)
 
 
 class MlModuleTest(unittest.TestCase):
@@ -36,9 +45,16 @@ class MlModuleTest(unittest.TestCase):
         eval_rf = rf.evaluate(self.X, self.y_cls, ["accuracy"])
         self.assertIn("accuracy", eval_rf)
 
+        gb = GradientBoostingClassifierModel(n_estimators=20, learning_rate=0.1, random_state=42).fit(
+            self.X, self.y_cls
+        )
+        self.assertIn("f1", gb.evaluate(self.X, self.y_cls, ["f1"]))
+
     def test_classification_validation(self):
         with self.assertRaises(ValueError):
             RandomForestClassifierModel(n_estimators=0)
+        with self.assertRaises(ValueError):
+            GradientBoostingClassifierModel(learning_rate=0)
 
     def test_regression_models_fit_predict_evaluate(self):
         linear = LinearRegressionModel().fit(self.X, self.y_reg)
@@ -53,11 +69,18 @@ class MlModuleTest(unittest.TestCase):
         rf_reg = RandomForestRegressionModel(n_estimators=8, random_state=42).fit(self.X, self.y_reg)
         self.assertIn("mae", rf_reg.evaluate(self.X, self.y_reg, ["mae"]))
 
+        gb_reg = GradientBoostingRegressionModel(
+            n_estimators=20, learning_rate=0.1, random_state=42
+        ).fit(self.X, self.y_reg)
+        self.assertIn("rmse", gb_reg.evaluate(self.X, self.y_reg, ["rmse"]))
+
     def test_regression_validation(self):
         with self.assertRaises(ValueError):
             RidgeRegressionModel(alpha=-0.1)
         with self.assertRaises(ValueError):
             RandomForestRegressionModel(n_estimators=0)
+        with self.assertRaises(ValueError):
+            GradientBoostingRegressionModel(subsample=0)
 
     def test_clustering_models_fit_predict_evaluate(self):
         kmeans = KMeansClusterModel(k=2, random_state=42).fit(self.X)
@@ -83,9 +106,11 @@ class MlModuleTest(unittest.TestCase):
     def test_factory_builds_expected_models(self):
         self.assertIsInstance(ml.classifier_of("logreg"), LogisticRegressionClassifier)
         self.assertIsInstance(ml.classifier_of("rf", n_estimators=5), RandomForestClassifierModel)
+        self.assertIsInstance(ml.classifier_of("gbdt", n_estimators=5), GradientBoostingClassifierModel)
         self.assertIsInstance(ml.regressor_of("linear"), LinearRegressionModel)
         self.assertIsInstance(ml.regressor_of("ridge"), RidgeRegressionModel)
         self.assertIsInstance(ml.regressor_of("rf", n_estimators=5), RandomForestRegressionModel)
+        self.assertIsInstance(ml.regressor_of("gbdt", n_estimators=5), GradientBoostingRegressionModel)
         self.assertIsInstance(ml.cluster_of("kmeans", k=2), KMeansClusterModel)
 
         # Backward compatibility alias for sklearn naming.
