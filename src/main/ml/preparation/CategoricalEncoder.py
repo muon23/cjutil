@@ -64,3 +64,15 @@ class CategoricalEncoder:
             Encoded feature matrix (dense or sparse based on configuration).
         """
         return self._encoder.fit_transform(X)
+
+    def get_feature_names_out(self, input_features: list[str] | None = None) -> np.ndarray:
+        """
+        Return output feature names for transformed columns.
+
+        Args:
+            input_features: Optional input feature names.
+
+        Returns:
+            Array of encoded feature names.
+        """
+        return self._encoder.get_feature_names_out(input_features)

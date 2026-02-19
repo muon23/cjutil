@@ -11,6 +11,7 @@ from ml.clustering import (
     of as _clustering_of,
 )
 from ml.preparation import (
+    DataSet,
     SplitResult,
     Split3Result,
     DatasetSplitter,
@@ -46,6 +47,7 @@ __all__ = [
     "RandomForestRegressionModel",
     "KMeansClusterModel",
     "DBSCANClusterModel",
+    "DataSet",
     "DatasetSplitter",
     "SplitResult",
     "Split3Result",

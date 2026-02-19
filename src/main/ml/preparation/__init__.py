@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 from ml.preparation.CategoricalEncoder import CategoricalEncoder
+from ml.preparation.DataSet import DataSet
 from ml.preparation.DatasetSplitter import DatasetSplitter, SplitResult, Split3Result
 from ml.preparation.FeatureScaler import FeatureScaler
 from ml.preparation.Imputer import Imputer
@@ -75,6 +76,7 @@ def train_val_test(
 __all__ = [
     "SplitResult",
     "Split3Result",
+    "DataSet",
     "DatasetSplitter",
     "FeatureScaler",
     "Imputer",

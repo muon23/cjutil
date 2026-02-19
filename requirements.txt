@@ -6,6 +6,8 @@ langchain-classic
 sentence-transformers
 transformers
 numpy
+pandas
+pyarrow
 scikit-learn
 implicit
 psycopg
