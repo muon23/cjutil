@@ -1,6 +1,7 @@
 from typing import Any
 
 from ml.regression.GradientBoostingRegressionModel import GradientBoostingRegressionModel
+from ml.regression.NNRegressionModel import NNRegressionModel
 from ml.regression.RegressionModel import RegressionModel
 from ml.regression.LinearRegressionModel import LinearRegressionModel
 from ml.regression.RidgeRegressionModel import RidgeRegressionModel
@@ -31,6 +32,9 @@ def of(model_name: str, **kwargs: Any) -> RegressionModel:
         "gradient_boosting": GradientBoostingRegressionModel,
         "gbdt": GradientBoostingRegressionModel,
         "gboost": GradientBoostingRegressionModel,
+        "neural_network": NNRegressionModel,
+        "nn": NNRegressionModel,
+        "mlp": NNRegressionModel,
     }
     model_cls = mapping.get(model_name, None)
     if not model_cls:
@@ -44,5 +48,6 @@ __all__ = [
     "RidgeRegressionModel",
     "RandomForestRegressionModel",
     "GradientBoostingRegressionModel",
+    "NNRegressionModel",
     "of",
 ]

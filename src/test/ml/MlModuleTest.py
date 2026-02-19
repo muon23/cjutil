@@ -1,24 +1,25 @@
 import tempfile
 import unittest
 from pathlib import Path
+import importlib.util
 
 import numpy as np
 
 import ml
 from ml.MLModel import MlModel
-from ml.classification import (
-    GradientBoostingClassifierModel,
-    LogisticRegressionClassifier,
-    RandomForestClassifierModel,
-)
+from ml.classification.GradientBoostingClassifierModel import GradientBoostingClassifierModel
+from ml.classification.LogisticRegressionClassifier import LogisticRegressionClassifier
+from ml.classification.NNClassificationModel import NNClassificationModel
+from ml.classification.RandomForestClassifierModel import RandomForestClassifierModel
 from ml.clustering import DBSCANClusterModel, KMeansClusterModel
 from ml.preparation import CategoricalEncoder, DatasetSplitter, FeatureScaler, Imputer, PCATransformer
-from ml.regression import (
-    GradientBoostingRegressionModel,
-    LinearRegressionModel,
-    RandomForestRegressionModel,
-    RidgeRegressionModel,
-)
+from ml.regression.GradientBoostingRegressionModel import GradientBoostingRegressionModel
+from ml.regression.LinearRegressionModel import LinearRegressionModel
+from ml.regression.NNRegressionModel import NNRegressionModel
+from ml.regression.RandomForestRegressionModel import RandomForestRegressionModel
+from ml.regression.RidgeRegressionModel import RidgeRegressionModel
+
+HAS_TORCH = importlib.util.find_spec("torch") is not None
 
 
 class MlModuleTest(unittest.TestCase):
@@ -50,11 +51,22 @@ class MlModuleTest(unittest.TestCase):
         )
         self.assertIn("f1", gb.evaluate(self.X, self.y_cls, ["f1"]))
 
+        if HAS_TORCH:
+            nn_cls = NNClassificationModel(hidden_dims=(8,), epochs=20, batch_size=2, random_state=42).fit(
+                self.X, self.y_cls
+            )
+            nn_preds = nn_cls.predict(self.X)
+            self.assertEqual(len(self.y_cls), len(nn_preds))
+            self.assertIn("accuracy", nn_cls.evaluate(self.X, self.y_cls, ["accuracy"]))
+
     def test_classification_validation(self):
         with self.assertRaises(ValueError):
             RandomForestClassifierModel(n_estimators=0)
         with self.assertRaises(ValueError):
             GradientBoostingClassifierModel(learning_rate=0)
+        if HAS_TORCH:
+            with self.assertRaises(ValueError):
+                NNClassificationModel(epochs=0)
 
     def test_regression_models_fit_predict_evaluate(self):
         linear = LinearRegressionModel().fit(self.X, self.y_reg)
@@ -74,6 +86,14 @@ class MlModuleTest(unittest.TestCase):
         ).fit(self.X, self.y_reg)
         self.assertIn("rmse", gb_reg.evaluate(self.X, self.y_reg, ["rmse"]))
 
+        if HAS_TORCH:
+            nn_reg = NNRegressionModel(hidden_dims=(8,), epochs=20, batch_size=2, random_state=42).fit(
+                self.X, self.y_reg
+            )
+            nn_reg_preds = nn_reg.predict(self.X)
+            self.assertEqual(len(self.y_reg), len(nn_reg_preds))
+            self.assertIn("mae", nn_reg.evaluate(self.X, self.y_reg, ["mae"]))
+
     def test_regression_validation(self):
         with self.assertRaises(ValueError):
             RidgeRegressionModel(alpha=-0.1)
@@ -81,6 +101,9 @@ class MlModuleTest(unittest.TestCase):
             RandomForestRegressionModel(n_estimators=0)
         with self.assertRaises(ValueError):
             GradientBoostingRegressionModel(subsample=0)
+        if HAS_TORCH:
+            with self.assertRaises(ValueError):
+                NNRegressionModel(batch_size=0)
 
     def test_clustering_models_fit_predict_evaluate(self):
         kmeans = KMeansClusterModel(k=2, random_state=42).fit(self.X)
@@ -107,10 +130,14 @@ class MlModuleTest(unittest.TestCase):
         self.assertIsInstance(ml.classifier_of("logreg"), LogisticRegressionClassifier)
         self.assertIsInstance(ml.classifier_of("rf", n_estimators=5), RandomForestClassifierModel)
         self.assertIsInstance(ml.classifier_of("gbdt", n_estimators=5), GradientBoostingClassifierModel)
+        if HAS_TORCH:
+            self.assertIsInstance(ml.classifier_of("nn", hidden_dims=(8,), epochs=1), NNClassificationModel)
         self.assertIsInstance(ml.regressor_of("linear"), LinearRegressionModel)
         self.assertIsInstance(ml.regressor_of("ridge"), RidgeRegressionModel)
         self.assertIsInstance(ml.regressor_of("rf", n_estimators=5), RandomForestRegressionModel)
         self.assertIsInstance(ml.regressor_of("gbdt", n_estimators=5), GradientBoostingRegressionModel)
+        if HAS_TORCH:
+            self.assertIsInstance(ml.regressor_of("nn", hidden_dims=(8,), epochs=1), NNRegressionModel)
         self.assertIsInstance(ml.cluster_of("kmeans", k=2), KMeansClusterModel)
 
         # Backward compatibility alias for sklearn naming.

@@ -3,6 +3,7 @@ from typing import Any
 from ml.classification.ClassifierModel import ClassifierModel
 from ml.classification.GradientBoostingClassifierModel import GradientBoostingClassifierModel
 from ml.classification.LogisticRegressionClassifier import LogisticRegressionClassifier
+from ml.classification.NNClassificationModel import NNClassificationModel
 from ml.classification.RandomForestClassifierModel import RandomForestClassifierModel
 
 
@@ -30,6 +31,9 @@ def of(model_name: str, **kwargs: Any) -> ClassifierModel:
         "gradient_boosting": GradientBoostingClassifierModel,
         "gbdt": GradientBoostingClassifierModel,
         "gboost": GradientBoostingClassifierModel,
+        "neural_network": NNClassificationModel,
+        "nn": NNClassificationModel,
+        "mlp": NNClassificationModel,
     }
     model_cls = mapping.get(model_name, None)
     if not model_cls:
@@ -42,5 +46,6 @@ __all__ = [
     "LogisticRegressionClassifier",
     "RandomForestClassifierModel",
     "GradientBoostingClassifierModel",
+    "NNClassificationModel",
     "of",
 ]
