@@ -1,6 +1,8 @@
 from ml.classification import (
     ClassifierModel,
+    GradientBoostingClassifierModel,
     LogisticRegressionClassifier,
+    NNClassificationModel,
     RandomForestClassifierModel,
     of as _classification_of,
 )
@@ -23,8 +25,10 @@ from ml.preparation import (
     train_val_test,
 )
 from ml.regression import (
+    GradientBoostingRegressionModel,
     RegressionModel,
     LinearRegressionModel,
+    NNRegressionModel,
     RidgeRegressionModel,
     RandomForestRegressionModel,
     of as _regression_of,
@@ -42,9 +46,13 @@ __all__ = [
     "ClusterModel",
     "LogisticRegressionClassifier",
     "RandomForestClassifierModel",
+    "GradientBoostingClassifierModel",
+    "NNClassificationModel",
     "LinearRegressionModel",
     "RidgeRegressionModel",
     "RandomForestRegressionModel",
+    "GradientBoostingRegressionModel",
+    "NNRegressionModel",
     "KMeansClusterModel",
     "DBSCANClusterModel",
     "DataSet",
