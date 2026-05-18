@@ -9,6 +9,27 @@ from llms.Llm import Llm
 
 
 class LlmTest(unittest.TestCase):
+    def test_escape_template_literals_json(self):
+        json_text = '{\n    "ref_conversation_id": 14710,\n    "message": "hello"\n}'
+        escaped = Llm.escape_template_literals(json_text)
+        self.assertEqual(
+            '{\n    "ref_conversation_id": 14710,\n    "message": "hello"\n}'.replace("{", "{{").replace("}", "}}"),
+            escaped,
+        )
+
+    def test_escape_template_literals_preserves_variables(self):
+        prompt = "Capital of {country} is unknown"
+        escaped = Llm.escape_template_literals(prompt, frozenset({"country"}))
+        self.assertIn("{country}", escaped)
+        self.assertNotIn("{{country}}", escaped)
+
+    def test_preprocess_prompt_accepts_json_user_message(self):
+        bot = llms.of("mock")
+        json_text = '{\n    "ref_conversation_id": 14710\n}'
+        template = bot.preprocess_prompt([("user", json_text)])
+        messages = template.format_messages()
+        self.assertIn("ref_conversation_id", messages[-1].content)
+
     def test_gpt_bot_working(self):
         bot = GptLlm()
         question = "What is the capital of {country}"

@@ -17,3 +17,5 @@ httpx
 trafilatura
 pypdf
 ddgs
+keybert>=0.8.0
+bertopic>=0.16.0

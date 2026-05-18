@@ -1,5 +1,4 @@
 import json
-import re
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -86,10 +85,13 @@ class Llm(ABC):
         """
         # Format the prompt into a LangChain ChatPromptTemplate object
         prompt_format = kwargs.pop("prompt_format", "f-string")
-        prompt = self.preprocess_prompt(prompt, prompt_format)
-
-        # Prompt template parameters for filling holes in the prompt
         arguments = kwargs.get("arguments", {})
+        template_variables = (
+            frozenset(str(k) for k in arguments.keys())
+            if isinstance(arguments, dict)
+            else frozenset()
+        )
+        prompt = self.preprocess_prompt(prompt, prompt_format, template_variables)
 
         # Create a sequential chain: Prompt -> LLM -> Response Cleanup
         # Type: ignore because clean_up_response is a method, but RunnableLambda accepts callables
@@ -106,49 +108,62 @@ class Llm(ABC):
 
         return response
 
+    @staticmethod
+    def escape_template_literals(
+            text: str,
+            template_variables: frozenset[str] | None = None,
+    ) -> str:
+        """
+        Escape curly braces so LangChain does not treat them as template variables.
+
+        When template_variables is empty (typical chat messages), every brace is escaped.
+        When names are provided (e.g. arguments={"country": "France"}), only those
+        placeholders like {country} are left unescaped.
+        """
+        if not text:
+            return text
+
+        vars_to_preserve = template_variables or frozenset()
+        if not vars_to_preserve:
+            return text.replace("{", "{{").replace("}", "}}")
+
+        result = text
+        sentinels: list[tuple[str, str]] = []
+        for i, var in enumerate(sorted(vars_to_preserve, key=len, reverse=True)):
+            placeholder = "{" + var + "}"
+            sentinel = f"\x00__LC_TEMPLATE_{i}__\x00"
+            sentinels.append((sentinel, placeholder))
+            result = result.replace(placeholder, sentinel)
+
+        result = result.replace("{", "{{").replace("}", "}}")
+
+        for sentinel, placeholder in sentinels:
+            result = result.replace(sentinel, placeholder)
+        return result
+
     def preprocess_prompt(
             self,
             prompt: Sequence[tuple[Role | str, str] | str] | Sequence[BaseMessage] | str,
-            prompt_format: Literal["f-string", "mustache", "jinja2"]
+            prompt_format: Literal["f-string", "mustache", "jinja2"],
+            template_variables: frozenset[str] | None = None,
     ) -> ChatPromptTemplate:
         """
         Converts various input prompt formats into a standardized ChatPromptTemplate.
-        
-        Escapes curly braces inside code blocks (```...```) to prevent LangChain from
-        interpreting them as template variables, while preserving actual template
-        variables outside code blocks.
+
+        Message content is escaped so literal text (JSON, code, etc.) is not parsed as
+        template variables. Placeholders listed in template_variables are preserved.
         """
-        def escape_code_blocks(text: str) -> str:
-            """
-            Escape curly braces inside code blocks (```...```) while preserving
-            template variables outside code blocks.
-            
-            Strategy:
-            1. Find all code blocks (```language ... ``` or ``` ... ```)
-            2. Escape curly braces inside code blocks only
-            3. Leave everything else unchanged (including template variables)
-            """
-            # Pattern to match code blocks: ```optional_language\ncontent\n```
-            # This handles both ```json\n...\n``` and ```\n...\n``` formats
-            code_block_pattern = r'```(\w+)?\n(.*?)```'
-            
-            def escape_code_content(match):
-                """Escape curly braces inside a code block."""
-                language = match.group(1) or ''
-                code_content = match.group(2)
-                # Escape all curly braces in the code content
-                escaped_content = code_content.replace("{", "{{").replace("}", "}}")
-                return f"```{language}\n{escaped_content}```"
-            
-            # Replace code blocks with escaped versions
-            result = re.sub(code_block_pattern, escape_code_content, text, flags=re.DOTALL)
-            return result
-        
+        def escape_message_content(text: str) -> str:
+            return self.escape_template_literals(text, template_variables)
+
         # If the prompt is a simple string, wrap it as a single message
         if isinstance(prompt, str):
             # This handles single instruction prompts
             human_role_name = self.role_names[self.Role.HUMAN]
-            return ChatPromptTemplate(messages=[(human_role_name, escape_code_blocks(prompt))], template_format=prompt_format)
+            return ChatPromptTemplate(
+                messages=[(human_role_name, escape_message_content(prompt))],
+                template_format=prompt_format,
+            )
         elif len(prompt) > 0 and isinstance(prompt[0], BaseMessage):
             # Handle Sequence[BaseMessage] - convert BaseMessage objects to (role, content) tuples
             messages = []
@@ -194,8 +209,7 @@ class Llm(ABC):
                     content = '\n'.join(text_parts)
                 else:
                     content = str(raw_content)
-                # Escape curly braces inside code blocks only
-                escaped_content = escape_code_blocks(content)
+                escaped_content = escape_message_content(content)
                 messages.append((role_name, escaped_content))
             return ChatPromptTemplate(messages=messages, template_format=prompt_format)
         else:
@@ -203,8 +217,7 @@ class Llm(ABC):
             messages = []
             for msg in prompt:
                 role_name = self.role_names[msg[0]] if isinstance(msg[0], self.Role) else msg[0]
-                # Escape curly braces inside code blocks only
-                escaped_content = escape_code_blocks(msg[1])
+                escaped_content = escape_message_content(msg[1])
                 messages.append((role_name, escaped_content))
             return ChatPromptTemplate(messages=messages, template_format=prompt_format)
 

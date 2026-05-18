@@ -24,6 +24,7 @@ from ml.preparation import (
     train_test,
     train_val_test,
 )
+from ml.nn import TwoTower
 from ml.regression import (
     GradientBoostingRegressionModel,
     RegressionModel,
@@ -68,4 +69,5 @@ __all__ = [
     "classifier_of",
     "regressor_of",
     "cluster_of",
+    "TwoTower",
 ]

@@ -24,6 +24,7 @@ class GeminiLlm(Llm):
     # Model metadata, including token limits and aliases
     __MODELS = {
         # Note: Aliases are used to provide short or previous version names
+        "gemini-3.1-pro-preview": {"aliases": ["gemini-3.1"]},
         "gemini-3-pro-preview": {"aliases": ["gemini-3"]},
         "gemini-2.5-pro": {"aliases": ["gemini-2.5"]},
         "gemini-2.5-flash": {},
