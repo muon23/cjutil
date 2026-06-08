@@ -77,24 +77,24 @@ class LlmTest(unittest.TestCase):
         #
         # Interesting that they all came out about the same story
         #
-        euryale = llms.of(model_name="euryale")
+        qwen = llms.of(model_name="qwen-3.6")
         prompt = "Once upon a time in {where},"
 
-        answer = euryale.invoke(prompt, arguments="a distance galaxy, ")
-        print("=========== Euryale ===========")
+        answer = qwen.invoke(prompt, arguments={"where": "a distance galaxy, "})
+        print("=========== Qwen-3.6 ===========")
         print(self.__readable_paragraph(answer.text))
         self.assertGreaterEqual(len(answer.text), 20)
 
         llama3 = llms.of(model_name="llama-3")
         prompt = "Once upon a time in {where},"
-        answer = llama3.invoke(prompt, arguments="a distance galaxy, ")
+        answer = llama3.invoke(prompt, arguments={"where": "a distance galaxy, "})
         print("==========LlaMA-3 ============")
         print(self.__readable_paragraph(answer.text))
         self.assertGreaterEqual(len(answer.text), 20)
 
         llama4 = llms.of(model_name="llama-4")
         prompt = "Once upon a time in {where},"
-        answer = llama4.invoke(prompt, arguments="a distance galaxy, ")
+        answer = llama4.invoke(prompt, arguments={"where": "a distance galaxy, "})
         print("==========LlaMA-4 ============")
         print(self.__readable_paragraph(answer.text))
         self.assertGreaterEqual(len(answer.text), 20)

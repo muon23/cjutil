@@ -17,13 +17,29 @@ class DeepInfraLlm(Llm):
     __DEFAULT_TOKEN_LIMIT = 128_000
 
     __MODELS = {
-        "Sao10K/L3.3-70B-Euryale-v2.3": {"aliases": ["euryale"], "token_limit": 131_072},
-        "meta-llama/Llama-3.3-70B-Instruct": {"aliases": ["llama-3"], "web_search": True},
-        "microsoft/WizardLM-2-8x22B": {"aliases": ["wizard-2"], "token_limit": 65_536},
-        "deepseek-ai/DeepSeek-V3.1": {"aliases": ["deepseek-v3.1"], "token_limit": 163_840, "web_search": True},
-        # "meta-llama/Llama-4-Maverick-17B-128E-Instruct-Turbo": {"aliases": ["llama-4"], "web_search": True}
+        # Meta Llama
         "meta-llama/Llama-4-Scout-17B-16E-Instruct": {"aliases": ["llama-4"], "web_search": True},
-        "moonshotai/Kimi-K2-Instruct-0905": {"aliases": ["kimi-k2"], "token_limit": 262_144, "web_search": True}
+        "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8": {"aliases": ["llama-4-maverick"], "web_search": True},
+        "meta-llama/Llama-3.3-70B-Instruct-Turbo": {"aliases": ["llama-3"], "token_limit": 131_072, "web_search": True},
+
+        # DeepSeek
+        "deepseek-ai/DeepSeek-V4-Pro": {"aliases": ["deepseek-v4-pro"], "token_limit": 1_048_576, "web_search": True},
+        "deepseek-ai/DeepSeek-V4-Flash": {"aliases": ["deepseek-v4", "deepseek-v4-flash"], "token_limit": 1_048_576, "web_search": True},
+        "deepseek-ai/DeepSeek-V3.2": {"aliases": ["deepseek-v3.2"], "token_limit": 163_840, "web_search": True},
+
+        # Qwen (Alibaba)
+        "Qwen/Qwen3.7-Max": {"aliases": ["qwen-3.7"], "token_limit": 250_000, "web_search": True},
+        "Qwen/Qwen3.5-397B-A17B": {"aliases": ["qwen-3.5"], "token_limit": 262_144, "web_search": True},
+        "Qwen/Qwen3.6-35B-A3B": {"aliases": ["qwen-3.6"], "token_limit": 256_000, "web_search": True},
+        "Qwen/Qwen3-Max": {"aliases": ["qwen-max"], "token_limit": 250_000, "web_search": True},
+
+        # Moonshot Kimi
+        "moonshotai/Kimi-K2.6": {"aliases": ["kimi-k2.6", "kimi-k2"], "token_limit": 262_144, "web_search": True},
+        "moonshotai/Kimi-K2.5": {"aliases": ["kimi-k2.5"], "token_limit": 262_144, "web_search": True},
+
+        # Google Gemma
+        "google/gemma-4-31B-it": {"aliases": ["gemma-4-31b", "gemma-4"], "token_limit": 262_144},
+        "google/gemma-4-26B-A4B-it": {"aliases": ["gemma-4-26b"], "token_limit": 262_144},
     }
 
     SUPPORTED_MODELS = list(__MODELS.keys())
