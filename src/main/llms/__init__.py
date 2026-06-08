@@ -24,7 +24,7 @@ def of(model_name: str, **kwargs) -> Llm:
     requested model_name is supported by that class.
 
     Args:
-        model_name: The name of the LLM requested (e.g., 'gpt-4o', 'gemini-2.5').
+        model_name: The name of the LLM requested (e.g., 'gpt-5.4', 'gemini-3.5').
         **kwargs: Arbitrary keyword arguments passed directly to the constructor
                   of the selected Llm subclass (e.g., API keys, temperature).
 

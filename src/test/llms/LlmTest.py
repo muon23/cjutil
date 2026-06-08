@@ -131,26 +131,26 @@ class LlmTest(unittest.TestCase):
         self.assertGreaterEqual(n, 5)
 
     def test_gemini_working(self):
-        gemini_2_5 = llms.of(model_name="gemini-2.5")
+        gemini_3_5 = llms.of(model_name="gemini-3.5")
         prompt = "What is the capital of {where},"
-        answer = gemini_2_5.invoke(prompt, arguments="Taiwan")
+        answer = gemini_3_5.invoke(prompt, arguments={"where": "Taiwan"})
         print(answer.text)
         self.assertIn("Taipei", answer.text)
 
-        gemini_pro = llms.of(model_name="gemini-2")
+        gemini_pro = llms.of(model_name="gemini-3.1")
         prompt = "What is the capital of {where},"
-        answer = gemini_pro.invoke(prompt, arguments="Lithuania")
+        answer = gemini_pro.invoke(prompt, arguments={"where": "Lithuania"})
         print(answer.text)
         self.assertIn("Vilnius", answer.text)
 
-        gemini_pro = llms.of(model_name="gemini-2t")
+        gemini_flash = llms.of(model_name="gemini-2.5")
         prompt = "What is the capital of {where},"
-        answer = gemini_pro.invoke(prompt, arguments="Greenland")
+        answer = gemini_flash.invoke(prompt, arguments={"where": "Greenland"})
         print(answer.text)
         self.assertIn("Nuuk", answer.text)
 
     def test_gpt_web_search(self):
-        gpt = llms.of(model_name="gpt-4o", web_search=True)
+        gpt = llms.of(model_name="gpt-5.4", web_search=True)
         prompt = [
             ("system", "Use web search.  Find out the current weather of the location given by the user."),
             ("user", "94582")
@@ -159,7 +159,7 @@ class LlmTest(unittest.TestCase):
         print(answer.text)
 
     def test_gemini_web_search(self):
-        gemini = llms.of("gemini-2.5", web_search=True)
+        gemini = llms.of("gemini-3.5", web_search=True)
         prompt = [
             ("system", "Use web search.  Find out the current weather of the location given by the user."),
             ("user", "94582")

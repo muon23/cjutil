@@ -23,19 +23,16 @@ class GeminiLlm(Llm):
 
     # Model metadata, including token limits and aliases
     __MODELS = {
-        # Note: Aliases are used to provide short or previous version names
+        "gemini-3.5-flash": {"aliases": ["gemini-3.5", "gemini"]},
         "gemini-3.1-pro-preview": {"aliases": ["gemini-3.1"]},
-        "gemini-3-pro-preview": {"aliases": ["gemini-3"]},
         "gemini-2.5-pro": {"aliases": ["gemini-2.5"]},
         "gemini-2.5-flash": {},
-        "gemini-2.0-flash": {"aliases": ["gemini-2"]},
-        "gemini-2.0-flash-thinking-exp-01-21": {"aliases": ["gemini-2t"]},
     }
 
     # List of all canonical model names
     SUPPORTED_MODELS = list(__MODELS.keys())
 
-    # Mapping from aliases (e.g., 'gemini-2') to canonical names
+    # Mapping from aliases (e.g., 'gemini-3.5') to canonical names
     MODEL_ALIASES = Llm._alias2model(__MODELS)
 
     # Dictionary mapping canonical model names to their context window size
@@ -43,7 +40,7 @@ class GeminiLlm(Llm):
 
     def __init__(
             self,
-            model_name: str = "gemini-2",
+            model_name: str = "gemini-3.5",
             model_key: str = None,
             web_search: bool = False,
             **kwargs):
@@ -51,7 +48,7 @@ class GeminiLlm(Llm):
         Initializes the Gemini LLM client.
 
         Args:
-            model_name: The requested model name or alias. Defaults to "gemini-2".
+            model_name: The requested model name or alias. Defaults to "gemini-3.5".
             model_key: The Gemini API key. Searches environment variable if None.
             web_search: If True, binds Google Search tool for grounding.
             **kwargs: Additional parameters passed directly to ChatGoogleGenerativeAI.

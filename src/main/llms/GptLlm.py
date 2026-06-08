@@ -19,40 +19,35 @@ class GptLlm(Llm):
     web search integration, and response cleanup.
     """
 
-    __DEFAULT_TOKEN_LIMIT = 4096
+    __DEFAULT_TOKEN_LIMIT = 1_000_000
 
     # Model metadata, including token limits and aliases
     __MODELS = {
+        "gpt-5.5": {"token_limit": 1_000_000, "aliases": ["gpt"]},
+        "gpt-5.4": {"token_limit": 1_000_000},
         "gpt-5.2": {"token_limit": 400_000},
         "gpt-5.1": {"token_limit": 400_000},
         "gpt-5": {"token_limit": 400_000},
-        "gpt-4.1": {},
-        "o3-mini": {"aliases": ["gpt-o3", "o3-mini"]},
-        "o1": {"aliases": ["gpt-o1", "o1"]},
-        "gpt-4o": {"token_limit": 16_384},
-        "gpt-4o-mini": {"token_limit": 16_384},
-        "gpt-4": {"token_limit": 8192},
-        "gpt-3.5-turbo": {"aliases": ["gpt-3.5"]},
     }
 
     # List of all canonical model names
     SUPPORTED_MODELS = list(__MODELS.keys())
 
     # Models that support web search via LangChain tools binding
-    WEB_SEARCH_SUPPORTED = ["gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-5", "gpt-5.1", "gpt-5.2"]
+    WEB_SEARCH_SUPPORTED = ["gpt-5.4", "gpt-5.5", "gpt-5.2", "gpt-5.1", "gpt-5"]
 
-    # Mapping from aliases (e.g., 'gpt-3.5') to canonical names ('gpt-3.5-turbo')
+    # Mapping from aliases (e.g., 'gpt') to canonical names ('gpt-5.5')
     MODEL_ALIASES = Llm._alias2model(__MODELS)
 
     # Dictionary mapping canonical model names to their context window size
     __MODEL_TOKEN_LIMITS = Llm._model_token_limit(__MODELS, __DEFAULT_TOKEN_LIMIT)
 
-    def __init__(self, model_name: str = "gpt-4", model_key: str = None, web_search: bool = False, **kwargs):
+    def __init__(self, model_name: str = "gpt-5.4", model_key: str = None, web_search: bool = False, **kwargs):
         """
         Initializes the GPT LLM client.
 
         Args:
-            model_name: The requested model name or alias. Defaults to "gpt-4".
+            model_name: The requested model name or alias. Defaults to "gpt-5.4".
             model_key: The OpenAI API key. Searches environment variable if None.
             web_search: If True, binds web search tools to supported models.
             **kwargs: Additional parameters passed directly to ChatOpenAI (e.g., temperature).
@@ -70,14 +65,6 @@ class GptLlm(Llm):
 
         if self.model_name not in self.SUPPORTED_MODELS:
             raise ValueError(f"LLM model {model_name} not supported")
-
-        # Determine custom role names for specific OpenAI models if necessary
-        # The 'o' series models sometimes require the system prompt to be mapped to 'user' role
-        if self.model_name in ["o1", "o1-preview", "o3-mini"]:
-            kwargs["temperature"] = 1  # These models removed temperature.  Setting it to anything else will fail.
-            role_names = {Llm.Role.SYSTEM: "user"}
-        else:
-            role_names = {}
 
         logging.info(f"Using {self.model_name}")
 
@@ -101,7 +88,7 @@ class GptLlm(Llm):
             self.llm = ChatOpenAI(model_name=self.model_name, openai_api_key=self.model_key, **kwargs)
 
         # Call the abstract class constructor
-        super().__init__(llm=self.llm, role_names=role_names)
+        super().__init__(llm=self.llm)
 
     def clean_up_response(self, response: Any) -> Llm.Response:
         """
