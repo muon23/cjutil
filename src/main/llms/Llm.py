@@ -144,7 +144,7 @@ class Llm(ABC):
     def preprocess_prompt(
             self,
             prompt: Sequence[tuple[Role | str, str] | str] | Sequence[BaseMessage] | str,
-            prompt_format: Literal["f-string", "mustache", "jinja2"],
+            prompt_format: Literal["f-string", "mustache", "jinja2"] = "f-string",
             template_variables: frozenset[str] | None = None,
     ) -> ChatPromptTemplate:
         """

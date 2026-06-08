@@ -6,6 +6,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.messages import AIMessage
 from langchain_core.runnables import Runnable
+from pydantic import SecretStr
 
 from llms.Llm import Llm
 
@@ -90,7 +91,7 @@ class ClaudeLlm(Llm):
 
         self.llm_model = ChatAnthropic(
             model_name=self.model_name,
-            api_key=self.model_key,
+            api_key=SecretStr(self.model_key),
             **kwargs
         )
 
