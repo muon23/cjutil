@@ -41,7 +41,7 @@ class Llm(ABC):
         metadata: Any = None
         raw: Any = None
 
-    def __init__(self, llm: Runnable, role_names: dict = None):
+    def __init__(self, llm: Runnable, role_names: dict | None = None):
         """
         Initializes the LLM wrapper.
 
@@ -368,7 +368,7 @@ class Llm(ABC):
                 if hasattr(msg, 'tool_calls') and msg.tool_calls:
                     for tool_call in msg.tool_calls:
                         tool_name = tool_call.get('name') if isinstance(tool_call, dict) else getattr(tool_call, 'name', None)
-                        if tool_name:
+                        if isinstance(tool_name, str):
                             tools_used.append(tool_name)
             
             # Also check intermediate_steps if available (for backward compatibility)
@@ -376,7 +376,7 @@ class Llm(ABC):
                 if isinstance(step, tuple) and len(step) >= 2:
                     action, observation = step[0], step[1]
                     tool_name = getattr(action, "tool", None)
-                    if tool_name:
+                    if isinstance(tool_name, str):
                         tools_used.append(tool_name)
                     sources.extend(Llm._extract_sources_from_observation(observation))
             
