@@ -9,7 +9,6 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 
 from llms.Llm import Llm
 
-
 class GeminiLlm(Llm):
     """
     Concrete implementation of the Llm abstract class for interacting with Google's
@@ -41,7 +40,7 @@ class GeminiLlm(Llm):
     def __init__(
             self,
             model_name: str = "gemini-3.5",
-            model_key: str = None,
+            model_key: str | None = None,
             web_search: bool = False,
             **kwargs):
         """

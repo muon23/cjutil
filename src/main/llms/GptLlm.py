@@ -6,6 +6,7 @@ from langchain_core.language_models import BaseLanguageModel
 from langchain_core.runnables import Runnable
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import AIMessage
+from pydantic import SecretStr
 
 from llms.Llm import Llm
 
@@ -42,7 +43,7 @@ class GptLlm(Llm):
     # Dictionary mapping canonical model names to their context window size
     __MODEL_TOKEN_LIMITS = Llm._model_token_limit(__MODELS, __DEFAULT_TOKEN_LIMIT)
 
-    def __init__(self, model_name: str = "gpt-5.4", model_key: str = None, web_search: bool = False, **kwargs):
+    def __init__(self, model_name: str = "gpt-5.4", model_key: str | None = None, web_search: bool = False, **kwargs):
         """
         Initializes the GPT LLM client.
 
@@ -73,19 +74,20 @@ class GptLlm(Llm):
         if not self.model_key:
             raise RuntimeError(f"OpenAI API key not provided")
 
-        # Client initialization (with or without web search binding)
-        if web_search:
-            if self.model_name not in self.WEB_SEARCH_SUPPORTED:
-                raise NotImplementedError(f"Web search is not supported by {self.model_name}")
+        if web_search and self.model_name not in self.WEB_SEARCH_SUPPORTED:
+            raise NotImplementedError(f"Web search is not supported by {self.model_name}")
 
-            # Initialize ChatOpenAI and bind web search tool
-            self.llm = ChatOpenAI(
-                model_name=self.model_name, openai_api_key=self.model_key,
-                use_responses_api=True, **kwargs
-            ).bind_tools([{"type": "web_search"}])
-        else:
-            # Standard initialization
-            self.llm = ChatOpenAI(model_name=self.model_name, openai_api_key=self.model_key, **kwargs)
+        self.llm_model = ChatOpenAI(
+            model=self.model_name,
+            api_key=SecretStr(self.model_key),
+            use_responses_api=web_search,
+            **kwargs
+        )
+        self.llm = (
+            self.llm_model.bind_tools([{"type": "web_search"}])
+            if web_search
+            else self.llm_model
+        )
 
         # Call the abstract class constructor
         super().__init__(llm=self.llm)
@@ -137,5 +139,5 @@ class GptLlm(Llm):
 
     def as_language_model(self) -> BaseLanguageModel:
         """Returns the underlying ChatOpenAI instance as a LangChain BaseLanguageModel."""
-        return self.llm
+        return self.llm_model
 
