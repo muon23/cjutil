@@ -1,6 +1,7 @@
 import logging
 import os
 from typing import Any, List
+from pydantic import SecretStr
 
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.runnables import Runnable
@@ -29,8 +30,8 @@ class DeepInfraLlm(Llm):
 
         # Qwen (Alibaba)
         "Qwen/Qwen3.7-Max": {"aliases": ["qwen-3.7"], "token_limit": 250_000, "web_search": True},
-        "Qwen/Qwen3.5-397B-A17B": {"aliases": ["qwen-3.5"], "token_limit": 262_144, "web_search": True},
-        "Qwen/Qwen3.6-35B-A3B": {"aliases": ["qwen-3.6"], "token_limit": 256_000, "web_search": True},
+        "Qwen/Qwen3.5-397B-A17B": {"aliases": ["qwen-3.5"], "token_limit": 262_144, "web_search": True}, # open source
+        "Qwen/Qwen3.6-35B-A3B": {"aliases": ["qwen-3.6"], "token_limit": 256_000, "web_search": True}, # open source, low cost
         "Qwen/Qwen3-Max": {"aliases": ["qwen-max"], "token_limit": 250_000, "web_search": True},
 
         # Moonshot Kimi
@@ -55,7 +56,7 @@ class DeepInfraLlm(Llm):
     def __init__(
             self,
             model_name: str = "llama-3",
-            model_key: str = None,
+            model_key: str | None = None,
             web_search: bool | str | WebSearch = False,
             **kwargs
     ):
@@ -76,7 +77,7 @@ class DeepInfraLlm(Llm):
 
         base_llm = ChatOpenAI(
             base_url=self.__API_URL,
-            api_key=self.model_key,
+            api_key=SecretStr(self.model_key),
             model=self.model_name,
             **kwargs
         )
