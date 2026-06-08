@@ -3,6 +3,7 @@ import unittest
 import textwrap
 
 import llms
+from llms.ClaudeLlm import ClaudeLlm
 from llms.HuggingFaceLlm import HuggingFaceLlm
 from llms.GptLlm import GptLlm
 from llms.Llm import Llm
@@ -97,6 +98,37 @@ class LlmTest(unittest.TestCase):
         print("==========LlaMA-4 ============")
         print(self.__readable_paragraph(answer.text))
         self.assertGreaterEqual(len(answer.text), 20)
+
+    def test_claude_unsupported_model(self):
+        with self.assertRaises(ValueError):
+            ClaudeLlm(model_name="claude-unsupported")
+
+    def test_claude_missing_api_key(self):
+        import os
+        saved = os.environ.pop("ANTHROPIC_API_KEY", None)
+        try:
+            with self.assertRaises(RuntimeError):
+                ClaudeLlm(model_name="claude-haiku", model_key=None)
+        finally:
+            if saved is not None:
+                os.environ["ANTHROPIC_API_KEY"] = saved
+
+    def test_claude_working(self):
+        claude = llms.of(model_name="claude-haiku")
+        prompt = "What is the capital of {where},"
+        answer = claude.invoke(prompt, arguments={"where": "Taiwan"})
+        print(answer.text)
+        self.assertIn("Taipei", answer.text)
+
+        claude_sonnet = llms.of(model_name="claude-sonnet")
+        prompt = "What is the capital of {where},"
+        answer = claude_sonnet.invoke(prompt, arguments={"where": "Lithuania"})
+        print(answer.text)
+        self.assertIn("Vilnius", answer.text)
+
+        n = claude.get_num_tokens("How many tokens do we have here?")
+        print(n)
+        self.assertGreaterEqual(n, 5)
 
     def test_gemini_working(self):
         gemini_2_5 = llms.of(model_name="gemini-2.5")

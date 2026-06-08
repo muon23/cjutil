@@ -7,6 +7,7 @@ based on the requested model name.
 """
 from typing import Sequence
 
+from llms.ClaudeLlm import ClaudeLlm
 from llms.DeepInfraLlm import DeepInfraLlm
 from llms.GeminiLlm import GeminiLlm
 from llms.GptLlm import GptLlm
@@ -33,7 +34,7 @@ def of(model_name: str, **kwargs) -> Llm:
     Raises:
         RuntimeError: If the provided model_name is not supported by any known subclass.
     """
-    bots = [GptLlm, GeminiLlm, DeepInfraLlm, HuggingFaceLlm]
+    bots = [GptLlm, GeminiLlm, ClaudeLlm, DeepInfraLlm, HuggingFaceLlm]
 
     if kwargs.pop("mock", False) or model_name == "mock":
         return MockLlm()
